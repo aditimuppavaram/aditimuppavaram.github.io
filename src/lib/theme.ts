@@ -12,10 +12,21 @@ function readStoredTheme(): Theme | null {
   }
 }
 
+const PAPER: Record<Theme, string> = { light: '#f4f3ef', dark: '#0e0f1c' }
+
+/** The browser bar colour (phones) follows the theme picked on the site, not just the system one. */
+function syncThemeColor(t: Theme | null) {
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    const media = m.getAttribute('media') || ''
+    m.content = t ? PAPER[t] : media.includes('dark') ? PAPER.dark : PAPER.light
+  })
+}
+
 /** Apply a saved choice before React renders, so there is no flash. */
 export function applyStoredTheme() {
   const t = readStoredTheme()
   if (t) document.documentElement.setAttribute('data-theme', t)
+  syncThemeColor(t)
 }
 
 function currentTheme(): Theme {
@@ -42,6 +53,7 @@ export function useTheme() {
   const toggle = () => {
     const next: Theme = currentTheme() === 'dark' ? 'light' : 'dark'
     document.documentElement.setAttribute('data-theme', next)
+    syncThemeColor(next)
     try {
       localStorage.setItem(KEY, next)
     } catch {

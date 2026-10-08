@@ -1,100 +1,180 @@
-import { animate, motion, useInView, useMotionValue, useTransform, type MotionValue } from 'motion/react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type RefObject } from 'react'
+import { animate, motion, useDragControls, useInView, useMotionValue, useTransform, type MotionValue } from 'motion/react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+} from 'react'
 import { about, site } from '../data/site'
 import { useMedia } from '../hooks/useMedia'
 
 const CLIP = 34 // the metal clip sits this far above the card's top edge
+const STRAP = 18 // strap width
+const HOLD_MS = 200 // phones: press and hold this long to pick the card up...
+const SLOP = 8 // ...without moving more than this (moving more is a scroll)
+
+type Limits = { top: number; left: number; right: number; bottom: number }
 
 /**
  * The lanyard ID card. A single strap hangs from the top of the About
  * section; drag the card anywhere in the section and the strap follows it,
  * let go and it swings back. Tap (or press Enter) to flip it.
+ *
+ * On phones a swipe over the card scrolls the page as usual; press and hold
+ * the card for a moment to pick it up.
  */
 export function IdCard({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
   const slotRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const wide = useMedia('(min-width: 1024px)')
+  const touch = useMedia('(pointer: coarse)')
+  const controls = useDragControls()
 
   const x = useMotionValue(0)
   const y = useMotionValue(0)
-  const swing = useMotionValue(0)
+  const scale = useMotionValue(1)
   const anchorX = useMotionValue(0)
   const anchorY = useMotionValue(0)
   const restTop = useMotionValue(0)
-  const [ready, setReady] = useState(false)
+  const [limits, setLimits] = useState<Limits | null>(null)
+  const [reach, setReach] = useState(0)
 
-  // The card leans along the strap, plus a little idle sway.
-  const rotate = useTransform(() => {
-    const dx = x.get()
+  // The strap runs from its anchor to the clip; the card leans along it.
+  const strapDy = () => restTop.get() - CLIP + 6 + y.get() - anchorY.get()
+  const strapLength = useTransform(() => Math.hypot(x.get(), strapDy()))
+  const strapAngle = useTransform(() => (-Math.atan2(x.get(), strapDy()) * 180) / Math.PI)
+  const lean = useTransform(() => {
     const dy = restTop.get() - CLIP - anchorY.get() + y.get()
-    return ((-Math.atan2(dx, Math.max(40, dy)) * 180) / Math.PI) * 0.9 + swing.get()
+    return ((-Math.atan2(x.get(), Math.max(40, dy)) * 180) / Math.PI) * 0.9
   })
-  const strap = useTransform(
-    () => `M ${anchorX.get()} ${anchorY.get()} L ${anchorX.get() + x.get()} ${restTop.get() - CLIP + 6 + y.get()}`,
-  )
 
   useLayoutEffect(() => {
+    const slot = slotRef.current
+    // (on the first render the section's ref isn't attached yet, so find it from the card)
+    const section = sectionRef.current ?? slot?.closest('section')
+    if (!section || !slot) return
     const measure = () => {
-      const s = sectionRef.current?.getBoundingClientRect()
-      const c = slotRef.current?.getBoundingClientRect()
-      if (!s || !c) return
       // measure the resting slot, not the (possibly dragged) card
+      const s = section.getBoundingClientRect()
+      const c = slot.getBoundingClientRect()
       const top = c.top - s.top
       anchorX.set(c.left - s.left + c.width / 2)
       restTop.set(top)
       // On wide screens the strap starts at the very top of the section.
       // On phones the card sits under the text, so it hangs from a short strap instead.
       anchorY.set(wide ? 0 : Math.max(0, top - CLIP - 110))
-      setReady(true)
+      // The card can be dragged anywhere inside the section. These are fixed numbers on purpose:
+      // limits tied to the section element make the drag library stop the card mid-swing
+      // whenever the window resizes, which on iPhone happens as soon as you scroll.
+      const next = {
+        top: Math.round(s.top - c.top),
+        left: Math.round(s.left - c.left),
+        right: Math.round(s.right - c.right),
+        bottom: Math.round(s.bottom - c.bottom),
+      }
+      setLimits((prev) =>
+        prev && prev.top === next.top && prev.left === next.left && prev.right === next.right && prev.bottom === next.bottom
+          ? prev
+          : next,
+      )
+      setReach(Math.ceil(Math.hypot(s.width, s.height)) + 240)
     }
     measure()
     const ro = new ResizeObserver(measure)
-    if (sectionRef.current) ro.observe(sectionRef.current)
-    window.addEventListener('resize', measure)
+    ro.observe(section)
     document.fonts?.ready.then(measure).catch(() => {})
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', measure)
-    }
+    return () => ro.disconnect()
   }, [sectionRef, wide, anchorX, anchorY, restTop])
 
-  // Swing in when the section scrolls into view, then sway gently.
-  const inView = useInView(slotRef, { once: true, amount: 0.3 })
-  const dragging = useRef(false)
-  useEffect(() => {
-    if (!inView) return
-    let idle: ReturnType<typeof animate> | undefined
-    const intro = animate(swing, [0, -11, 8, -5, 3, -1.5, 0], { duration: 2.8, ease: 'easeOut' })
-    intro.then(() => {
-      if (!dragging.current) idle = animate(swing, [0, 1.6, -1.6, 0], { duration: 6, repeat: Infinity, ease: 'easeInOut' })
-    })
-    return () => {
-      intro.stop()
-      idle?.stop()
-    }
-  }, [inView, swing])
+  // Swing in when the section scrolls into view, then sway gently (in CSS, so it
+  // costs nothing while you scroll). The sway pauses off-screen and while held.
+  const swungIn = useInView(slotRef, { once: true, amount: 0.3 })
+  const onScreen = useInView(slotRef, { margin: '160px 0px' })
+  const [held, setHeld] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   const [flipped, setFlipped] = useState(false)
-  const down = useRef({ x: 0, y: 0 })
-  const onPointerDown = (e: PointerEvent) => {
-    down.current = { x: e.clientX, y: e.clientY }
+  const press = useRef({ x: 0, y: 0, timer: 0, armed: false, picked: false, event: null as PointerEvent | null })
+
+  const lift = (to: number) => animate(scale, to, { type: 'spring', stiffness: 520, damping: to > 1 ? 26 : 30 })
+
+  const onPointerDown = (e: ReactPointerEvent) => {
+    const p = press.current
+    window.clearTimeout(p.timer)
+    p.x = e.clientX
+    p.y = e.clientY
+    p.picked = false
+    if (!(touch && e.pointerType === 'touch')) {
+      controls.start(e) // mouse and pen: drag straight away
+      return
+    }
+    p.event = e.nativeEvent
+    p.timer = window.setTimeout(() => {
+      p.armed = true
+      p.picked = true
+      setHeld(true)
+      lift(1.045)
+      if (p.event) controls.start(p.event)
+    }, HOLD_MS)
+  }
+  const onPointerMove = (e: ReactPointerEvent) => {
+    const p = press.current
+    if (!p.armed && Math.hypot(e.clientX - p.x, e.clientY - p.y) > SLOP) window.clearTimeout(p.timer)
+  }
+  const endPress = () => {
+    const p = press.current
+    window.clearTimeout(p.timer)
+    p.event = null
+    if (p.armed) {
+      p.armed = false
+      setHeld(false)
+      lift(1)
+    }
   }
   const onClick = (e: MouseEvent) => {
-    if (Math.hypot(e.clientX - down.current.x, e.clientY - down.current.y) < 6) setFlipped((f) => !f)
+    const p = press.current
+    if (p.picked) {
+      p.picked = false // a press-and-hold picks the card up; it doesn't flip it
+      return
+    }
+    if (Math.hypot(e.clientX - p.x, e.clientY - p.y) < 6) setFlipped((f) => !f)
   }
+
+  // Once the card is picked up, the finger moves the card instead of the page.
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el || !touch) return
+    const block = (e: TouchEvent) => {
+      if (press.current.armed) e.preventDefault()
+    }
+    el.addEventListener('touchmove', block, { passive: false })
+    return () => el.removeEventListener('touchmove', block)
+  }, [touch])
+
+  useEffect(() => () => window.clearTimeout(press.current.timer), [])
 
   return (
     <>
-      <Strap d={strap} visible={ready} />
+      <Strap anchorX={anchorX} anchorY={anchorY} angle={strapAngle} length={strapLength} reach={reach} visible={reach > 0} />
 
       <div className="relative flex flex-col items-center" style={{ paddingTop: wide ? 64 : 150 }}>
         <div ref={slotRef} className="relative w-[min(280px,76vw)]">
           <motion.div
+            ref={cardRef}
             role="button"
             tabIndex={0}
             aria-pressed={flipped}
             aria-label={`ID card for ${site.name}. Drag it, or press to flip.`}
             onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endPress}
+            onPointerCancel={endPress}
             onClick={onClick}
+            onContextMenu={(e) => touch && e.preventDefault()}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
@@ -102,54 +182,88 @@ export function IdCard({ sectionRef }: { sectionRef: RefObject<HTMLElement | nul
               }
             }}
             drag
-            dragConstraints={sectionRef}
+            dragListener={false}
+            dragControls={controls}
+            dragConstraints={limits ?? false}
             dragElastic={0.12}
             dragSnapToOrigin
-            dragTransition={{ bounceStiffness: 190, bounceDamping: 8 }}
+            dragTransition={{ bounceStiffness: 240, bounceDamping: 15 }}
             onDragStart={() => {
-              dragging.current = true
-              swing.stop()
-              animate(swing, 0, { duration: 0.2 })
+              setDragging(true)
+              if (!press.current.armed) lift(1.02)
             }}
             onDragEnd={() => {
-              dragging.current = false
+              setDragging(false)
+              lift(1)
             }}
-            whileDrag={{ cursor: 'grabbing', scale: 1.02 }}
-            style={{ x, y, rotate, transformOrigin: `50% -${CLIP}px`, perspective: 1400 }}
-            className="relative z-30 w-full cursor-grab touch-none select-none"
+            style={{ x, y, rotate: lean, scale, transformOrigin: `50% -${CLIP}px`, touchAction: touch ? 'manipulation' : 'none' }}
+            className={`relative z-30 w-full select-none [-webkit-touch-callout:none] ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           >
-            <Clip />
-            <motion.div
-              className="preserve-3d relative aspect-[5/8] w-full"
-              animate={{ rotateY: flipped ? 180 : 0 }}
-              transition={{ type: 'spring', stiffness: 110, damping: 15 }}
+            {/* two layers so each runs a single animation the GPU can take over: the swing-in, then the sway */}
+            <div
+              className={`card-swing ${swungIn ? 'is-in' : ''}`}
+              data-paused={!onScreen || held || dragging || undefined}
+              style={{ transformOrigin: `50% -${CLIP}px` }}
             >
-              <CardFront />
-              <CardBack />
-            </motion.div>
+              <div
+                className={`card-sway ${swungIn ? 'is-in' : ''}`}
+                data-paused={!onScreen || held || dragging || undefined}
+                style={{ transformOrigin: `50% -${CLIP}px`, perspective: 1400 }}
+              >
+                <Clip />
+                <motion.div
+                  className="preserve-3d relative aspect-[5/8] w-full"
+                  animate={{ rotateY: flipped ? 180 : 0 }}
+                  transition={{ type: 'spring', stiffness: 110, damping: 15 }}
+                >
+                  <CardFront />
+                  <CardBack />
+                </motion.div>
+              </div>
+            </div>
           </motion.div>
         </div>
-        <p className="eyebrow mt-6 text-center text-[10px]">Drag the card · tap to flip</p>
+        <p className="eyebrow mt-6 text-center text-[10px]">
+          {touch ? 'Hold to pick it up · tap to flip' : 'Drag the card · tap to flip'}
+        </p>
       </div>
     </>
   )
 }
 
-/** The strap is drawn across the whole section, so it follows the card anywhere. */
-function Strap({ d, visible }: { d: MotionValue<string>; visible: boolean }) {
+/**
+ * The strap. It is drawn from the anchor towards the card using only transforms
+ * (a rotated holder that clips a long strip sliding inside it), so moving the
+ * card never re-lays out or repaints anything.
+ */
+function Strap({
+  anchorX,
+  anchorY,
+  angle,
+  length,
+  reach,
+  visible,
+}: {
+  anchorX: MotionValue<number>
+  anchorY: MotionValue<number>
+  angle: MotionValue<number>
+  length: MotionValue<number>
+  reach: number
+  visible: boolean
+}) {
+  const left = useTransform(() => anchorX.get() - STRAP / 2)
+  const slide = useTransform(() => length.get() - reach)
+  const words = useMemo(() => `${site.first} · analyst · `.repeat(Math.max(4, Math.ceil(reach / 90))), [reach])
   return (
-    <svg
-      className="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
-      style={{ opacity: visible ? 1 : 0 }}
+    <motion.div
       aria-hidden
+      className="pointer-events-none absolute left-0 top-0 z-20 overflow-hidden will-change-transform"
+      style={{ x: left, y: anchorY, rotate: angle, originX: 0.5, originY: 0, width: STRAP, height: reach, opacity: visible ? 1 : 0 }}
     >
-      <motion.path id="lanyard-strap" d={d} fill="none" strokeWidth="18" strokeLinecap="butt" style={{ stroke: 'var(--ink)' }} />
-      <text fontSize="7.5" letterSpacing="2.4" dominantBaseline="middle" className="font-mono uppercase" style={{ fill: 'var(--paper)', opacity: 0.75 }}>
-        <textPath href="#lanyard-strap" startOffset="8%">
-          {`${site.first} · analyst · ${site.first} · analyst · ${site.first} · analyst · ${site.first} · analyst`}
-        </textPath>
-      </text>
-    </svg>
+      <motion.div className="lanyard-strap will-change-transform" style={{ y: slide, height: reach }}>
+        {words}
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -185,7 +299,7 @@ function CardFront() {
       <div className="flex flex-1 flex-col items-center px-5 pt-5">
         <div className="grid aspect-[4/5] w-[52%] place-items-center overflow-hidden rounded-[14px] border-2 border-[#1e2038] bg-[#ebe9e2]">
           {site.photo ? (
-            <img src={site.photo} alt="" className="h-full w-full object-cover" draggable={false} />
+            <img src={site.photo} alt="" className="pointer-events-none h-full w-full object-cover" draggable={false} />
           ) : (
             <span className="font-serif text-[3.4rem] italic leading-none text-[#1e2038]">{site.monogram}</span>
           )}

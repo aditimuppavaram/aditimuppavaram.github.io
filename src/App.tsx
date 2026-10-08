@@ -2,6 +2,7 @@ import { MotionConfig } from 'motion/react'
 import { useEffect, useLayoutEffect } from 'react'
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Header } from './components/Header'
+import { Toaster } from './components/Toast'
 import { SmoothScroll, useLenis } from './lib/scroll'
 import { CaseStudy } from './pages/CaseStudy'
 import { Home } from './pages/Home'
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <Footer />
+          <Toaster />
         </SmoothScroll>
       </HashRouter>
     </MotionConfig>

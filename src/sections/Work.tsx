@@ -27,7 +27,7 @@ export function Work() {
           accent="built."
           aside={
             <p className="text-[15px] text-ink-soft">
-              Seven projects across CMS programs, Job Ring and graduate school. Hover a panel to open it.
+              Seven projects across CMS programs, Job Ring and graduate school. {wide ? 'Hover a panel to open it.' : 'Tap a project to open it.'}
             </p>
           }
         />

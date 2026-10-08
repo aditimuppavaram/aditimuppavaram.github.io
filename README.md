@@ -11,17 +11,26 @@ version of her résumé.
 1. **Hero** — her name in large faded letters behind a full-length photo of her, a "Hi, I'm Aditi." chat
    bubble, the headline, a short intro that fades in word by word, a spinning "Open to…" badge, and
    Explore work / Let's talk / Resume buttons.
-2. **About** — a lanyard ID card you can drag around and tap to flip, a short bio and quick facts.
-3. **Skills** — "The periodic table of my stack": 40 skills in six groups. Point at a tile to see details.
-4. **Work** — "Things I've built": seven projects in panels that open on hover, each with its own
-   case-study page.
+2. **About** — a lanyard ID card you can drag around and tap to flip (on phones, press and hold it to pick it
+   up; a normal swipe over it scrolls the page), a short bio and quick facts.
+3. **Skills** — "The periodic table of my stack": 40 skills in six groups. Point at (or tap) a tile to see details.
+4. **Work** — "Things I've built": seven projects in panels that open on hover (rows you tap open
+   on phones), each with its own case-study page.
 5. **Always learning** — her coursework.
 6. **Education & experience** — a timeline of her jobs and degrees.
 7. **Proud moments** — her achievement numbers on cards that slide sideways as you scroll.
 8. **Contact** — email, LinkedIn and the résumé download.
 
-Also included: a web résumé page (`/#/resume`), a downloadable PDF résumé, light and dark mode, a layout
-that works on phones, and a calmer version for visitors who turn on "reduce motion".
+Also included: a web résumé page (`/#/resume`), a downloadable PDF résumé, light and dark mode, and a
+phone layout with a "liquid glass" header and menu: the menu button shows which section you're reading,
+the menu grows out of it, the skill details stay pinned on glass while you scroll the table, and copying
+the email shows a small confirmation. Visitors who turn on "reduce motion" or "reduce transparency" get
+calmer, solid versions.
+
+Phones and tablets use their own native scrolling (smooth scrolling is added only for mouse and
+trackpad), and the moving parts (the card's sway, the pulsing dots, the spinning badge, the project
+drawings) run on the graphics chip, and the larger ones pause when they're off screen, so scrolling stays
+smooth.
 
 **Built with** React 19, TypeScript, Vite 8, Tailwind CSS 4, Motion, Lenis and React Router 7.
 
@@ -89,10 +98,10 @@ src/
   data/site.ts        all the text, links and photo file names
   sections/           Hero, About, Skills, Work, Learning, Experience, Achievements, Contact
   pages/              Home, case studies (/work/:slug), résumé (/resume)
-  components/         header and menu, ID card, hero photo and bubble, résumé link, icons, shared UI
+  components/         header and menu, ID card, hero photo and bubble, résumé link, toast, icons, shared UI
   visuals/            the small drawings shown for each project
   lib/                light/dark theme, smooth scrolling
-  index.css           colours, fonts and shared styles
+  index.css           colours, fonts, the glass material and shared styles
 public/               photos, résumé PDF, tab icons, previous/ (earlier versions)
 .github/workflows/    deploy.yml: builds and publishes the site on every push to main
 ```

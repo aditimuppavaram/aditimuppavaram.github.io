@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { elements, families, type Element, type FamilyId } from '../data/site'
 import { FamilyIcon } from '../components/icons'
+import { useMedia } from '../hooks/useMedia'
 import { Container, EASE, SectionHeading } from '../components/ui'
 
 const familyLabel = Object.fromEntries(families.map((f) => [f.id, f.label])) as Record<FamilyId, string>
@@ -13,6 +14,7 @@ export function Skills() {
   const tableRef = useRef<HTMLDivElement>(null)
   const inView = useInView(tableRef, { once: true, amount: 0.2 })
   const [waveDone, setWaveDone] = useState(false)
+  const hover = useMedia('(hover: hover)', true)
 
   useEffect(() => {
     if (!inView) return
@@ -34,7 +36,7 @@ export function Skills() {
           label="Skills"
           lead="The periodic table"
           accent="of my stack."
-          sub={`${elements.length} elements in six families. Hover a tile to see what it is, or pick a family to light it up.`}
+          sub={`${elements.length} elements in six families. ${hover ? 'Hover' : 'Tap'} a tile to see what it is, or pick a family to light it up.`}
         />
 
         <div className="mt-9 flex flex-wrap gap-2.5" role="group" aria-label="Light up a family">
@@ -75,7 +77,7 @@ export function Skills() {
               />
             ))}
           </div>
-          <Inspector el={focus} />
+          <Inspector el={focus} hover={hover} />
         </div>
       </Container>
     </section>
@@ -133,35 +135,39 @@ function Tile({
   )
 }
 
-function Inspector({ el }: { el: Element | null }) {
+/**
+ * What the picked tile is. On phones it's a glass pane that sticks under the header,
+ * so it stays in view while you scroll the table beneath it.
+ */
+function Inspector({ el, hover }: { el: Element | null; hover: boolean }) {
   return (
     <div
-      className="order-first flex min-h-[96px] items-center rounded-[24px] border border-line bg-surface/70 p-5 lg:order-none lg:min-h-[340px] lg:justify-center lg:p-7"
+      className="glass sticky top-[calc(env(safe-area-inset-top,0px)+72px)] z-20 order-first flex min-h-[88px] items-center rounded-[26px] p-3.5 sm:p-5 lg:relative lg:top-auto lg:order-none lg:min-h-[340px] lg:justify-center lg:p-7"
       aria-live="polite"
     >
       <AnimatePresence mode="wait" initial={false}>
         {el ? (
           <motion.div
             key={el.sym}
-            className="flex w-full items-center gap-5 lg:flex-col lg:text-center"
+            className="flex w-full items-center gap-4 sm:gap-5 lg:flex-col lg:text-center"
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25, ease: EASE }}
           >
             <div
-              className="grid size-20 shrink-0 place-items-center rounded-[22px] lg:size-28 lg:rounded-[28px]"
+              className="grid size-14 shrink-0 place-items-center rounded-[18px] sm:size-20 sm:rounded-[22px] lg:size-28 lg:rounded-[28px]"
               style={{
                 background: el.family === 'ops' ? 'var(--chip)' : `var(--fam-${el.family})`,
                 color: `var(--fam-${el.family}-fg)`,
               }}
             >
-              <FamilyIcon family={el.family} className="size-10 lg:size-14" stroke={1.4} />
+              <FamilyIcon family={el.family} className="size-8 sm:size-10 lg:size-14" stroke={1.4} />
             </div>
             <div className="min-w-0">
-              <div className="font-display text-[1.45rem] font-bold leading-tight tracking-[-0.03em] lg:text-[1.75rem]">{el.name}</div>
-              <div className="eyebrow mt-1.5 text-[10px]">{familyLabel[el.family]}</div>
-              <p className="mt-3 text-[13.5px] leading-snug text-ink-soft lg:mx-auto lg:max-w-[30ch]">{el.note}</p>
+              <div className="font-display text-[1.2rem] font-bold leading-tight tracking-[-0.03em] sm:text-[1.45rem] lg:text-[1.75rem]">{el.name}</div>
+              <div className="eyebrow mt-1 text-[10px] sm:mt-1.5">{familyLabel[el.family]}</div>
+              <p className="mt-1.5 text-[13px] leading-snug text-ink-soft sm:mt-3 sm:text-[13.5px] lg:mx-auto lg:max-w-[30ch]">{el.note}</p>
             </div>
           </motion.div>
         ) : (
@@ -172,7 +178,7 @@ function Inspector({ el }: { el: Element | null }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            Hover any element to see what it is.
+            {hover ? 'Hover' : 'Tap'} any element to see what it is.
           </motion.p>
         )}
       </AnimatePresence>

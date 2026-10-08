@@ -1,4 +1,5 @@
-import { motion } from 'motion/react'
+import { motion, useInView } from 'motion/react'
+import { useRef } from 'react'
 import type { VisualKind } from '../data/site'
 
 /**
@@ -16,11 +17,22 @@ export function ProjectVisual({ kind, className = '' }: { kind: VisualKind; clas
     roc: Roc,
     schema: Schema,
   }[kind]
+  // looping animations pause while the visual is off screen
+  const ref = useRef<HTMLDivElement>(null)
+  const live = useInView(ref, { margin: '120px 0px' })
   return (
-    <div className={`relative overflow-hidden rounded-[22px] border border-line bg-wash ${className}`}>
-      <svg viewBox="0 0 400 300" className="h-full w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={labels[kind]}>
-        <Comp />
-      </svg>
+    <div
+      ref={ref}
+      data-live={live}
+      className={`relative overflow-hidden rounded-[22px] border border-line bg-wash [container-type:size] ${className}`}
+    >
+      {/* a 4:3 stage centred in the box, so moving parts line up with the drawing at any size */}
+      <div className="visual-stage absolute left-1/2 top-1/2 aspect-[4/3] -translate-x-1/2 -translate-y-1/2">
+        <svg viewBox="0 0 400 300" className="block h-full w-full" role="img" aria-label={labels[kind]}>
+          <Comp />
+        </svg>
+        {kind === 'pipeline' && <MovingCard />}
+      </div>
     </div>
   )
 }
@@ -97,18 +109,26 @@ function Pipeline() {
           ))}
         </g>
       ))}
-      <motion.g
-        animate={{ x: [0, 0, 126, 126, 252, 252] }}
-        transition={{ duration: 7, times: [0, 0.18, 0.38, 0.6, 0.8, 1], repeat: Infinity, ease: 'easeInOut' }}
-      >
+    </g>
+  )
+}
+
+/**
+ * The new application travelling from Intake to Review to Decision. It sits on its own
+ * layer above the drawing, so the GPU slides it and nothing gets redrawn.
+ */
+function MovingCard() {
+  return (
+    <div className="pipeline-card absolute left-[5.5%] top-[76%] h-[16.667%] w-[26%]" aria-hidden>
+      <svg viewBox="22 228 104 50" className="block h-full w-full overflow-visible">
         <rect x={22} y={228} width={104} height={50} rx={9} className="fill-ink" />
         <rect x={30} y={236} width={58} height={17} rx={8.5} className="fill-paper" opacity="0.18" />
         <text x={38} y={248} fontSize="7.5" className={`${MONO} fill-paper`}>
           NEW APP
         </text>
         <rect x={30} y={262} width={80} height={4} rx={2} className="fill-paper" opacity="0.35" />
-      </motion.g>
-    </g>
+      </svg>
+    </div>
   )
 }
 

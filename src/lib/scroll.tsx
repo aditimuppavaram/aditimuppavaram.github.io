@@ -6,12 +6,19 @@ const LenisContext = createContext<Lenis | null>(null)
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** Buttery smooth scrolling (Lenis). Turned off for people who ask for reduced motion. */
+/** Phones and tablets: their own scrolling is already smooth and runs off the main thread. */
+const touchFirst = () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+
+/**
+ * Buttery smooth wheel scrolling (Lenis) for mouse and trackpad. Phones and tablets keep
+ * native scrolling: Lenis can't improve it there, and its touch listeners would make
+ * every scroll wait for the page's code. Also off for people who ask for reduced motion.
+ */
 export function SmoothScroll({ children }: { children: ReactNode }) {
   const [lenis, setLenis] = useState<Lenis | null>(null)
 
   useEffect(() => {
-    if (prefersReducedMotion()) return
+    if (prefersReducedMotion() || touchFirst()) return
     const instance = new Lenis({ lerp: 0.1, smoothWheel: true })
     let frame = 0
     const raf = (time: number) => {

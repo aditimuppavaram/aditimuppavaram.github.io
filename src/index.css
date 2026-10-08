@@ -36,6 +36,18 @@
 
   --live: #2f9e44;
 
+  /* liquid glass (header, menu, toasts, the skills inspector) */
+  --glass-tint: rgb(255 255 255 / 0.5);
+  --glass-tint-strong: rgb(255 255 255 / 0.72);
+  --glass-sheen: rgb(255 255 255 / 0.34);
+  --glass-rim: rgb(255 255 255 / 0.95);
+  --glass-rim-soft: rgb(255 255 255 / 0.42);
+  --glass-edge: rgb(30 32 56 / 0.09);
+  --glass-shadow: 0 12px 32px -14px rgb(30 32 56 / 0.4), 0 2px 8px -3px rgb(30 32 56 / 0.14);
+  --glass-press: rgb(30 32 56 / 0.07);
+  --glass-lens: rgb(255 255 255 / 0.66);
+  --scrim: rgb(14 15 28 / 0.18);
+
   --ff-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --ff-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --ff-serif: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
@@ -67,6 +79,17 @@
     --fam-ops-fg: #ecebf5;
     --fam-ops-swatch: #1b1d33;
     --live: #69db7c;
+
+    --glass-tint: rgb(30 33 62 / 0.5);
+    --glass-tint-strong: rgb(25 28 54 / 0.76);
+    --glass-sheen: rgb(255 255 255 / 0.08);
+    --glass-rim: rgb(255 255 255 / 0.34);
+    --glass-rim-soft: rgb(255 255 255 / 0.1);
+    --glass-edge: rgb(0 0 0 / 0.4);
+    --glass-shadow: 0 12px 32px -14px rgb(0 0 0 / 0.75), 0 2px 8px -3px rgb(0 0 0 / 0.45);
+    --glass-press: rgb(255 255 255 / 0.09);
+    --glass-lens: rgb(255 255 255 / 0.11);
+    --scrim: rgb(0 0 0 / 0.42);
     color-scheme: dark;
   }
 }
@@ -95,6 +118,17 @@
   --fam-ops-fg: #ecebf5;
   --fam-ops-swatch: #1b1d33;
   --live: #69db7c;
+
+  --glass-tint: rgb(30 33 62 / 0.5);
+  --glass-tint-strong: rgb(25 28 54 / 0.76);
+  --glass-sheen: rgb(255 255 255 / 0.08);
+  --glass-rim: rgb(255 255 255 / 0.34);
+  --glass-rim-soft: rgb(255 255 255 / 0.1);
+  --glass-edge: rgb(0 0 0 / 0.4);
+  --glass-shadow: 0 12px 32px -14px rgb(0 0 0 / 0.75), 0 2px 8px -3px rgb(0 0 0 / 0.45);
+  --glass-press: rgb(255 255 255 / 0.09);
+  --glass-lens: rgb(255 255 255 / 0.11);
+  --scrim: rgb(0 0 0 / 0.42);
   color-scheme: dark;
 }
 
@@ -118,6 +152,9 @@
 html {
   background: var(--paper);
   -webkit-text-size-adjust: 100%;
+  /* no grey flash on tap, and no double-tap zoom delay (pinch zoom still works) */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 body {
@@ -129,6 +166,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: clip;
+  /* phones held sideways: keep content clear of the notch */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 
@@ -168,8 +208,51 @@ html.lenis, html.lenis body { height: auto; }
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .dash-flow { stroke-dasharray: 6 6; animation: dash-flow 1.2s linear infinite; }
+  /* project illustrations: a 4:3 stage fitted inside the box (older browsers: full width) */
+  .visual-stage { width: 100%; }
+  @supports (width: 1cqw) {
+    .visual-stage { width: min(100cqw, 133.33cqh); }
+  }
+
+  /* the new application moving through the MEARIS columns */
+  .pipeline-card { animation: pipeline-move 7s ease-in-out infinite; }
+  [data-live="false"] .dash-flow,
+  [data-live="false"] .pipeline-card { animation-play-state: paused; }
   .spin-slow { animation: spin-slow 22s linear infinite; }
-  .live-dot { background: var(--live); animation: live-pulse 1.8s ease-out infinite; }
+
+  /* a green dot with a ring that pulses out (transform + opacity only, so it never repaints) */
+  .live-dot { position: relative; background: var(--live); }
+  .live-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--live);
+    pointer-events: none;
+    animation: live-pulse 1.8s ease-out infinite;
+  }
+
+  /* the ID card: swings in once, then sways gently; paused off-screen and while held */
+  .card-swing.is-in { animation: card-swing-in 2.8s ease-out; }
+  .card-sway.is-in { animation: card-sway 6s ease-in-out 2.8s infinite; }
+  .card-swing[data-paused],
+  .card-sway[data-paused] { animation-play-state: paused; }
+
+  /* the lanyard strap: a long strip with her name printed down it */
+  .lanyard-strap {
+    width: 18px;
+    overflow: hidden;
+    background: var(--ink);
+    color: color-mix(in oklab, var(--paper) 75%, transparent);
+    font-family: var(--ff-mono);
+    font-size: 7.5px;
+    line-height: 18px;
+    letter-spacing: 2.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+    user-select: none;
+  }
 
   /* the faded name behind the hero: strong on the left,
      fading out to the right and towards the bottom */
@@ -185,6 +268,45 @@ html.lenis, html.lenis body { height: auto; }
     mask-composite: intersect;
   }
 
+  /*
+    Liquid glass: one material for what floats above the page. A blurred, saturated,
+    lightly tinted pane with a bright rim where light catches its edge.
+  */
+  .glass {
+    position: relative;
+    background-color: var(--glass-tint);
+    background-image: linear-gradient(to bottom, var(--glass-sheen), transparent 55%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    box-shadow:
+      inset 0 1px 0.5px var(--glass-rim),
+      inset 0 -0.5px 0.5px var(--glass-rim-soft),
+      0 0 0 0.5px var(--glass-edge),
+      var(--glass-shadow);
+  }
+  .glass-strong { background-color: var(--glass-tint-strong); }
+  /* the rim: brightest at the top left, softer at the bottom right */
+  .glass::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(140deg, var(--glass-rim) 0%, transparent 34%, transparent 66%, var(--glass-rim-soft) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  /* a lighter pane inside glass, marking the selected item */
+  .glass-lens {
+    background: var(--glass-lens);
+    box-shadow: inset 0 1px 0.5px var(--glass-rim), inset 0 0 0 0.5px var(--glass-rim-soft);
+  }
+  /* touch feedback: glass swells a little under the finger, then springs back */
+  .glass-press { transition: scale 0.5s cubic-bezier(0.25, 1.6, 0.4, 1); }
+  .glass-press:active { scale: 1.07; transition-duration: 0.16s; }
+
   .card-shadow {
     box-shadow:
       0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent),
@@ -194,10 +316,44 @@ html.lenis, html.lenis body { height: auto; }
 
 @keyframes dash-flow { to { stroke-dashoffset: -24; } }
 @keyframes spin-slow { to { transform: rotate(360deg); } }
+@keyframes pipeline-move {
+  0%, 18% { transform: translateX(0); }
+  38%, 60% { transform: translateX(121.154%); }
+  80%, 100% { transform: translateX(242.308%); }
+}
 
 @keyframes live-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--live) 55%, transparent); }
-  100% { box-shadow: 0 0 0 10px transparent; }
+  from { transform: scale(1); opacity: 0.55; }
+  to { transform: scale(2.8); opacity: 0; }
+}
+
+@keyframes card-swing-in {
+  0% { transform: rotate(0deg); }
+  16.667% { transform: rotate(-11deg); }
+  33.333% { transform: rotate(8deg); }
+  50% { transform: rotate(-5deg); }
+  66.667% { transform: rotate(3deg); }
+  83.333% { transform: rotate(-1.5deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes card-sway {
+  0%, 100% { transform: rotate(0deg); }
+  33.333% { transform: rotate(1.6deg); }
+  66.667% { transform: rotate(-1.6deg); }
+}
+
+/* glass without blur support, or for people who ask for less transparency: a solid pane */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass { background-color: var(--glass-tint-strong); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background-color: var(--surface);
+    background-image: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

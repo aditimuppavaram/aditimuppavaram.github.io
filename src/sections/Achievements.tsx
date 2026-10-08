@@ -85,7 +85,7 @@ function SwipeTrack() {
   return (
     <section id="achievements" className="relative py-[clamp(96px,13vw,170px)]">
       <Container>{heading}</Container>
-      <div className="no-scrollbar mt-10 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-6 pt-2 sm:scroll-px-6 sm:px-6">
+      <div className="no-scrollbar mt-10 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto overscroll-x-contain px-4 pb-6 pt-2 sm:scroll-px-6 sm:px-6">
         {achievements.map((a, i) => (
           <Card key={a.title} a={a} i={i} />
         ))}
@@ -126,18 +126,28 @@ function Card({ a, i }: { a: Achievement; i: number }) {
   )
 }
 
+/** Counts up once it scrolls into view. It writes the digits straight into the text, so React doesn't re-render 60 times a second. */
 function CountUp({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null)
   const inView = useInView(ref, { once: true, amount: 0 })
-  const [n, setN] = useState(value)
   useEffect(() => {
-    if (!inView) return
-    const c = animate(0, value, { duration: 1.4, ease: [0.22, 1, 0.36, 1], onUpdate: (v) => setN(Math.round(v)) })
-    return () => c.stop()
+    const text = ref.current?.firstChild
+    if (!inView || !text) return
+    const c = animate(0, value, {
+      duration: 1.4,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (v) => {
+        text.nodeValue = String(Math.round(v))
+      },
+    })
+    return () => {
+      c.stop()
+      text.nodeValue = String(value)
+    }
   }, [inView, value])
   return (
     <span ref={ref} className="tabular">
-      {n}
+      {value}
     </span>
   )
 }

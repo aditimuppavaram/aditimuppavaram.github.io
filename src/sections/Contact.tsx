@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { site } from '../data/site'
 import { useScrollTo } from '../lib/scroll'
 import { ResumeLink } from '../components/ResumeLink'
+import { copyText, toast } from '../components/Toast'
 import { ArrowDown, ArrowRight, ArrowUpRight, Check, Container, Copy, Reveal, SectionHeading } from '../components/ui'
 
 export function Contact() {
@@ -11,20 +12,20 @@ export function Contact() {
   const emailRef = useRef<HTMLSpanElement>(null)
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(site.email)
+    if (await copyText(site.email)) {
       setCopied(true)
+      toast('Email copied')
       setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // Clipboard can be blocked: select the address so it can be copied by hand.
-      const el = emailRef.current
-      if (!el) return
-      const range = document.createRange()
-      range.selectNodeContents(el)
-      const sel = window.getSelection()
-      sel?.removeAllRanges()
-      sel?.addRange(range)
+      return
     }
+    // Clipboard can be blocked: select the address so it can be copied by hand.
+    const el = emailRef.current
+    if (!el) return
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    const sel = window.getSelection()
+    sel?.removeAllRanges()
+    sel?.addRange(range)
   }
 
   return (
