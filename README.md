@@ -72,13 +72,13 @@ exactly `Aditi_Anand_Muppavaram_Resume.pdf` and click **Commit changes**. It rep
 
 Or upload it under a new name and change `image` (under `hero`) or `photo` in `src/data/site.ts`.
 
-**Tab icon.** `public/favicon.ico`, `public/icon-192.png` and `public/apple-touch-icon.png`
-(the icon on phone home screens).
+**Tab title.** The `<title>` line in `index.html`.
 
-**Going back.** `public/previous/` keeps copies of the first hero photo, ID card photo and "AM" tab
-icons. To use one again, point to it: for example `image: 'previous/aditi-hero.webp'` in
-`src/data/site.ts`, or `previous/favicon.ico` in the icon lines of `index.html`. Every earlier version
-of every file is also in the commit history.
+**Going back.** `public/previous/` keeps copies of the first hero photo, ID card photo and the "AM"
+tab icons. To use a photo again, point to it, for example `image: 'previous/aditi-hero.webp'` in
+`src/data/site.ts`. To show the "AM" tab icon again, replace the `<link rel="icon" …>` line in
+`index.html` with `<link rel="icon" href="./previous/favicon.ico" />`. Every earlier version of every
+file is also in the commit history.
 
 **On your computer.** Edit the files, check them with `npm run dev`, then commit and push to `main`.
 
@@ -93,6 +93,6 @@ src/
   visuals/            the small drawings shown for each project
   lib/                light/dark theme, smooth scrolling
   index.css           colours, fonts and shared styles
-public/               photos, résumé PDF, tab icons, previous/ (earlier versions)
+public/               photos, résumé PDF, previous/ (earlier versions)
 .github/workflows/    deploy.yml: builds and publishes the site on every push to main
 ```
