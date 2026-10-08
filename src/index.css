@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+/* wide but short windows (most laptops): the hero's buttons go in one row to leave room */
+@custom-variant wideshort (@media (min-width: 1024px) and (min-aspect-ratio: 185/100));
+
+/*
+  Layout: one long scroll on a 1440px frame. Navy ink on a
+  soft off-white, a faded first name behind a full-height hero figure, bold Inter
+  Tight headlines with an Instrument Serif italic tail, mono eyebrows, pill nav.
+*/
+:root {
+  --paper: #f4f3ef;
+  --surface: #ffffff;
+  --ink: #1e2038;
+  --ink-soft: #6a6b7e;
+  --line: #e2e0d8;
+  --wash: #ebe9e2;
+  --chip: #ece7dc;
+  --accent-dot: #9ea2bd;
+  --clip: #cdbf9f;
+
+  /* skill families: a dark-to-light ramp */
+  --fam-lang: #1e2038;
+  --fam-lang-fg: #ffffff;
+  --fam-db: #3b3d59;
+  --fam-db-fg: #ffffff;
+  --fam-bi: #6f6760;
+  --fam-bi-fg: #ffffff;
+  --fam-ml: #a2988d;
+  --fam-ml-fg: #ffffff;
+  --fam-prod: #ddd6ca;
+  --fam-prod-fg: #1e2038;
+  --fam-ops: transparent;
+  --fam-ops-fg: #1e2038;
+  --fam-ops-swatch: #f7f5f0;
+
+  --live: #2f9e44;
+
+  --ff-display: "Inter Tight", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ff-body: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ff-serif: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+  --ff-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e0f1c;
+    --surface: #171930;
+    --ink: #ecebf5;
+    --ink-soft: #a3a4b8;
+    --line: #2a2c46;
+    --wash: #1b1d33;
+    --chip: #23253d;
+    --accent-dot: #6f7398;
+    --clip: #8f8466;
+    --fam-lang: #ecebf5;
+    --fam-lang-fg: #14152a;
+    --fam-db: #c6c5d8;
+    --fam-db-fg: #14152a;
+    --fam-bi: #8f877f;
+    --fam-bi-fg: #ffffff;
+    --fam-ml: #5e5853;
+    --fam-ml-fg: #ffffff;
+    --fam-prod: #34322f;
+    --fam-prod-fg: #ecebf5;
+    --fam-ops: transparent;
+    --fam-ops-fg: #ecebf5;
+    --fam-ops-swatch: #1b1d33;
+    --live: #69db7c;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0e0f1c;
+  --surface: #171930;
+  --ink: #ecebf5;
+  --ink-soft: #a3a4b8;
+  --line: #2a2c46;
+  --wash: #1b1d33;
+  --chip: #23253d;
+  --accent-dot: #6f7398;
+  --clip: #8f8466;
+  --fam-lang: #ecebf5;
+  --fam-lang-fg: #14152a;
+  --fam-db: #c6c5d8;
+  --fam-db-fg: #14152a;
+  --fam-bi: #8f877f;
+  --fam-bi-fg: #ffffff;
+  --fam-ml: #5e5853;
+  --fam-ml-fg: #ffffff;
+  --fam-prod: #34322f;
+  --fam-prod-fg: #ecebf5;
+  --fam-ops: transparent;
+  --fam-ops-fg: #ecebf5;
+  --fam-ops-swatch: #1b1d33;
+  --live: #69db7c;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-wash: var(--wash);
+  --color-chip: var(--chip);
+  --color-clip: var(--clip);
+  --color-live: var(--live);
+
+  --font-sans: var(--ff-body);
+  --font-display: var(--ff-display);
+  --font-serif: var(--ff-serif);
+  --font-mono: var(--ff-mono);
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--ff-body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+h1, h2, h3 {
+  font-family: var(--ff-display);
+  text-wrap: balance;
+}
+
+/* Lenis smooth scroll */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* small helpers that Tailwind doesn't ship (in a layer so utilities can override them) */
+@layer components {
+  .eyebrow {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .dash-flow { stroke-dasharray: 6 6; animation: dash-flow 1.2s linear infinite; }
+  .spin-slow { animation: spin-slow 22s linear infinite; }
+  .live-dot { background: var(--live); animation: live-pulse 1.8s ease-out infinite; }
+
+  /* the faded name behind the hero: strong on the left,
+     fading out to the right and towards the bottom */
+  .watermark {
+    color: color-mix(in oklab, var(--ink) 13%, transparent);
+    -webkit-mask-image:
+      linear-gradient(100deg, #000 0%, rgba(0, 0, 0, 0.82) 40%, rgba(0, 0, 0, 0.42) 75%, rgba(0, 0, 0, 0.26) 100%),
+      linear-gradient(to bottom, #000 70%, rgba(0, 0, 0, 0.55) 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(100deg, #000 0%, rgba(0, 0, 0, 0.82) 40%, rgba(0, 0, 0, 0.42) 75%, rgba(0, 0, 0, 0.26) 100%),
+      linear-gradient(to bottom, #000 70%, rgba(0, 0, 0, 0.55) 100%);
+    mask-composite: intersect;
+  }
+
+  .card-shadow {
+    box-shadow:
+      0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent),
+      0 24px 50px -28px color-mix(in oklab, var(--ink) 28%, transparent);
+  }
+}
+
+@keyframes dash-flow { to { stroke-dashoffset: -24; } }
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--live) 55%, transparent); }
+  100% { box-shadow: 0 0 0 10px transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
